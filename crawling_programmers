@@ -1,0 +1,37 @@
+import requests
+from bs4 import BeautifulSoup
+from markdownify import MarkdownConverter as MarkdownifyConverter
+
+class TestCrawler:
+    def __init__(self, url, parser):
+        self.request_html(url)
+        self.convert_html_bs4(parser)
+        self.parse()
+
+    def request_html(self, url):
+        response = requests.get(url)
+        self.html = response.text
+
+    def convert_html_bs4(self, parser):
+        self.soup = BeautifulSoup(self.html, "lxml")
+
+    def parse(self):
+        category, title, description= self.find_category_title()
+
+    def find_category_title(self):
+        category_title_soup = self.soup.find("ol", "breadcrumb")
+        _, category_soup, title_soup = category_title_soup.find_all("li")
+        category = category_soup.get_text()
+        title = title_soup.get_text()
+        description = md(self.soup.find("div", "guide-section-description"))
+        print(category, title, description)
+        return category, title, description
+
+def md(soup, **options):
+    return MarkdownifyConverter(**options).convert_soup(soup)
+
+if __name__ == "__main__":
+    url = "https://school.programmers.co.kr/learn/courses/30/lessons/42885"
+    parser = "lxml"
+    crawler = TestCrawler(url, parser)
+#bs4로 언어 & 난이도 설정 -> selenium으로 클릭 -> 크롤링
