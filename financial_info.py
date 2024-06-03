@@ -6,26 +6,33 @@ import yfinance as yf
 from time import sleep
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import pandas as pd
 
 now = datetime.now()
 today = now.strftime("%Y%m%d")
 yesterday = now - relativedelta(days=1)
 before_one_week = now - relativedelta(weeks=1)
 before_one_month = now - relativedelta(months=1)
+before_five_year = now - relativedelta(years = 5)
 
 class StockPriceFetcher:
     def get_stockprice(self):
         # 시장별 지수
-        df_KRX = stock.get_index_price_change(before_one_week, today, "KRX")
-        df_KOSPI = stock.get_index_price_change(before_one_week, today, "KOSPI")
-        df_KOSDAQ = stock.get_index_price_change(before_one_week, today, "KOSDAQ")
+        df_KRX = stock.get_index_price_change(before_five_year, today, "KRX")
+        df_KOSPI = stock.get_index_price_change(before_five_year, today, "KOSPI")
+        df_KOSDAQ = stock.get_index_price_change(before_five_year, today, "KOSDAQ")
 
         # 주종목 별 지수
-        df_00020 = stock.get_market_ohlcv(before_one_week, now, "000020")
+        df_00020 = stock.get_market_ohlcv(before_five_year, now, "000020")
         print(df_00020)
         print(df_KRX.head(1))
         print(df_KOSPI.head(1))
         print(df_KOSDAQ.head(1))
+        # 데이터 저장
+        df_00020.to_csv('stock_data.csv')
+        df_KRX.to_csv('krx_data.csv')
+        df_KOSPI.to_csv('kospi_data.csv')
+        df_KOSDAQ.to_csv('kosdaq_data.csv')
         return df_KOSDAQ, df_KOSPI, df_KRX
 
 class ExchangeRateFetcher:
@@ -52,6 +59,10 @@ class ExchangeRateFetcher:
             print(f'{exchange_rate_data_currencyName}/KRW의 현재 환율: ', exchange_rate_data_basePrice)
             print('당일 최고/최저 환율: ', exchange_rate_data_highPrice, '/', exchange_rate_data_lowPrice)
             print('전일 대비 변동 가격: ', exchange_rate_data_change, exchange_rate_data_changePrice)
+
+            # 데이터 저장 
+            df_exchange_rate = pd.DataFrame(exchange_rate_data)
+            df_exchange_rate.to_csv('exchange_data.csv', index=False)
             return exchange_rate_data_basePrice, exchange_rate_data_currencyName, exchange_rate_data_highPrice, exchange_rate_data_lowPrice, exchange_rate_data_changePrice, exchange_rate_data_change
         else:
             print('error')
@@ -59,8 +70,11 @@ class ExchangeRateFetcher:
 
 class GoldPriceFetcher:
     def get_goldprice(self):
-        gold = yf.download('GC=F', before_one_week, now, auto_adjust=True)
+        gold = yf.download('GC=F', before_five_year, now, auto_adjust=True)
         print(gold)
+
+        # 데이터 저장 
+        gold.to_csv('gold_data.csv')
         return gold
 
 if __name__ == '__main__':
@@ -75,3 +89,4 @@ if __name__ == '__main__':
 
     gold_rate = GoldPriceFetcher()
     gold_rate.get_goldprice()
+    
