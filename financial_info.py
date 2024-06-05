@@ -23,13 +23,14 @@ class StockPriceFetcher:
         df_KOSDAQ = stock.get_index_price_change(before_five_year, today, "KOSDAQ")
 
         # 주종목 별 지수
-        df_00020 = stock.get_market_ohlcv(before_five_year, now, "000020")
-        print(df_00020)
+        df_stock = stock.get_market_ohlcv(before_five_year, now, input("예측을 원하는 종목코드를 입력하세요 :"))
+        print('<<-------주식------->>')
+        print(df_stock)
         print(df_KRX.head(1))
         print(df_KOSPI.head(1))
         print(df_KOSDAQ.head(1))
         # 데이터 저장
-        df_00020.to_csv('stock_data.csv')
+        df_stock.to_csv('stock_data.csv')
         df_KRX.to_csv('krx_data.csv')
         df_KOSPI.to_csv('kospi_data.csv')
         df_KOSDAQ.to_csv('kosdaq_data.csv')
@@ -56,6 +57,7 @@ class ExchangeRateFetcher:
             exchange_rate_data_change = exchange_rate_data[0]['change'] # 전일 대비 가격 변동 상태
             exchange_rate_data_changePrice = exchange_rate_data[0]['changePrice'] # 전일 대비 변동 가격
 
+            print('<<-------환율------->>')
             print(f'{exchange_rate_data_currencyName}/KRW의 현재 환율: ', exchange_rate_data_basePrice)
             print('당일 최고/최저 환율: ', exchange_rate_data_highPrice, '/', exchange_rate_data_lowPrice)
             print('전일 대비 변동 가격: ', exchange_rate_data_change, exchange_rate_data_changePrice)
@@ -71,6 +73,7 @@ class ExchangeRateFetcher:
 class GoldPriceFetcher:
     def get_goldprice(self):
         gold = yf.download('GC=F', before_five_year, now, auto_adjust=True)
+        print('<<-------금리------->>')
         print(gold)
 
         # 데이터 저장 
