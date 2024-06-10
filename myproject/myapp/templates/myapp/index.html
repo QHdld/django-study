@@ -3,7 +3,6 @@
 <head>
     {% load static %}
     <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
     <link href="{% static 'myproject/css/main.css' %}" rel="stylesheet" />
     <title>Document</title>
 </head>
@@ -34,39 +33,15 @@
             <span class="item">최저</span>
         </div>
     </div>
-    <div class="graphs">
-        <div class="graph stock-graph">
-            <div class="buttons">
-                <button>일주일</button>
-                <button>한 달</button>
-                <button>6개월</button>
-                <button>1년</button>
-                <button>2년</button>
-                <button>3년</button>
-            </div>
+    <div class="left-container">
+        <div class="input-container">
+            <input type="text" placeholder="조회 할 시장(종목명)을 입력하세요" />
         </div>
-        <div class="graph exchange-graph">
-            <!-- No buttons here -->
-        </div>
-        <div class="graph gold-graph">
-            <div class="buttons">
-                <button>일주일</button>
-                <button>한 달</button>
-                <button>6개월</button>
-                <button>1년</button>
-                <button>2년</button>
-                <button>3년</button>
-            </div>
+        <div class="buttons">
+            <button>그래프 보기</button>
+            <button class="predict">예측 데이터와 인사이트 받기</button>
         </div>
     </div>
-    <div class="input-container">
-        <input type="text" placeholder="조회 할 시장(종목코드)을 입력하세요" />
-    </div>
-    <div class="predict-container">
-        <button class="predict">예측 데이터와 인사이트 받기</button>
-    </div>
-    <div class="footer">
-        <span>LSTM을 사용하여 기존 데이터를 기반으로 향후 1년동안의 주가 예측 결과</span>
-    </div>
+
 </body>
 </html>
