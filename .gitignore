@@ -7,3 +7,9 @@ local_settings.py
 db.sqlite3
 madia
 .DS_Store
+exchange_data.csv
+gold_data.csv
+kosdaq_data.csv
+kospi_data.csv
+krx_data.csv
+stock_data.csv
