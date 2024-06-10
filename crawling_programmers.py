@@ -25,14 +25,9 @@ class BasicSelector:
         return language
 
 class TestSelector:
-    def search_test(self):
-        driver = webdriver.Chrome() 
-        driver.get(select_url)
-        time.sleep(5)
-        i = random.randrange(1,21)
-        selected_problem_page_url = driver.find_element(By.XPATH, f'//*[@id="edu-service-app-main"]/div/div[2]/article/div[2]/div[1]/div[5]/div/table/tbody/tr[{i}]/td[2]/div/a').get_attribute('href')
-        problem_page_url = selected_problem_page_url
-        print(problem_page_url)
+    def select_test(self):
+        test_number = input("문제 번호를 입력하세요:")
+        problem_page_url = f"https://school.programmers.co.kr/learn/courses/30/lessons/{test_number}"
         return problem_page_url
 
 class TestCrawler:
@@ -64,11 +59,32 @@ def md(soup, **options):
     return MarkdownifyConverter(**options).convert_soup(soup)
 
 if __name__ == "__main__":
-    parser = "lxml"
-    url = "https://school.programmers.co.kr/learn/challenges?order=acceptance_desc&page=1"
+    # parser = "lxml"
+    # url = "https://school.programmers.co.kr/learn/challenges?order=acceptance_desc&page=1"
+    # level = BasicSelector.select_level()
+    # language = BasicSelector.select_language()
+    # select_url = f"https://school.programmers.co.kr/learn/challenges?order=recent{level}{language}"
+    # selector = TestSelector()
+    # problem_page_url = selector.search_test()
+    # crawler = TestCrawler(problem_page_url, parser)
+
+    # 사용자 입력을 받아 레벨과 언어 선택
     level = BasicSelector.select_level()
     language = BasicSelector.select_language()
+
+    # URL 구성
+    url = "https://school.programmers.co.kr/learn/challenges?order=acceptance_desc&page=1"
     select_url = f"https://school.programmers.co.kr/learn/challenges?order=recent{level}{language}"
-    selector = TestSelector()
-    problem_page_url = selector.search_test()
-    crawler = TestCrawler(problem_page_url, parser)
+    
+    # 문제 선택
+    parser = "lxml"
+    problem_page_url = TestSelector().select_test()
+
+    # 문제 페이지 크롤링
+    test_crawler = TestCrawler(problem_page_url, parser)
+    
+    # 파싱된 결과 출력
+    category, title, description = test_crawler.parse()
+    print("Category:", category)
+    print("Title:", title)
+    print("Description:", description)
