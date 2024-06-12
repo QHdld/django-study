@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
+    <link href="{% static 'myproject/css/main.css' %}" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+    <title>Document</title>
+</head>
+<body>
+    <div class="header">
+        <span class="title">주식</span>
+        <span class="title">환율</span>
+        <span class="title">금</span>
+    </div>
+    <div class="container">
+        <div class="section stock">
+            <span class="item">KOSPI {{ kospi_open_price }} {{ kospi_change_rate }}</span>
+            <span class="item">KOSDAQ {{ kosdaq_open_price }} {{ kosdaq_change_rate }}</span>
+            <span class="item">KRX 300 {{ krx300_open_price }} {{ krx300_change_rate }}</span>
+            <span class="item">삼성전자 {{ samsung_electronics_open_price }} {{ samsung_electronics_change_rate }}</span>
+            <span class="item">SK 하이닉스 {{ sk_hynix_open_price }} {{ sk_hynix_change_rate }}</span>
+        </div>
+        <div class="section exchange">
+            <span class="item">미국 {{ usd_basePrice }} {{ usd_changeStatus }} {{ usd_changePrice }}</span>
+            <span class="item">중국 {{ cny_basePrice }} {{ cny_changeStatus }} {{ cny_changePrice }}</span>
+            <span class="item">유럽 {{ eur_basePrice }} {{ eur_changeStatus }} {{ eur_changePrice }}</span>
+            <span class="item">일본 {{ jpy_basePrice }} {{ jpy_changeStatus }} {{ jpy_changePrice }}</span>
+        </div>
+        <div class="section gold">
+            <span class="item">시가 {{ gold_open }}</span>
+            <span class="item">종가 {{ gold_close }}</span>
+            <span class="item">최고 {{ gold_high }}</span>
+            <span class="item">최저 {{ gold_low }}</span>
+        </div>
+    </div>
+    <div class="left-container">
+        <div class="input-container">
+            <form id="stockForm" method="POST" action="{% url 'show_chart' %}">
+                {% csrf_token %}
+                <input type="text" name="stock_name" placeholder="조회 할 시장(종목명)을 입력하세요" />
+                <button type="submit">그래프 보기</button>
+            </form>
+        </div>
+    </div>
+    <div id="chartContainer">
+        <canvas id="myChart" width="300" height="100"></canvas>
+    </div>
+
+    <script>
+        let myChart = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrfToken = getCookie('csrftoken');
+
+        document.getElementById('stockForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch("{% url 'show_chart' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.labels && data.data) {
+                    updateChart(data.labels, data.data);
+                } else {
+                    alert('데이터를 가져오지 못했습니다.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        function updateChart(labels, data) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (myChart) {
+                myChart.destroy();
+            }
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Stock Price',
+                        data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            document.getElementById('chartContainer').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
