@@ -123,3 +123,4 @@ class StockDataFetcher:
         labels = df['날짜'].astype(str).tolist()
         data = df['종가'].tolist()
         return labels, data
+
