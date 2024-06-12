@@ -20,4 +20,3 @@ urlpatterns = [
     path('', market_data_view, name='market_data'),
         path('show_chart/', show_chart, name='show_chart'),
 ]
-

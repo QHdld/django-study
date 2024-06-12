@@ -36,4 +36,3 @@ def show_chart(request):
                 'data': data,
             })
     return JsonResponse({'error': 'Invalid request'}, status=400)
-
