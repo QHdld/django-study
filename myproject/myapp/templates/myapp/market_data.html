@@ -5,6 +5,7 @@
     <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
     <link href="{% static 'myproject/css/main.css' %}" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <title>Document</title>
 </head>
 <body>
@@ -40,6 +41,7 @@
                 {% csrf_token %}
                 <input type="text" name="stock_name" placeholder="조회 할 시장(종목명)을 입력하세요" />
                 <button type="submit">그래프 보기</button>
+                <button id="viewPredictionButton" type="button">예측 데이터 보기</button>
             </form>
         </div>
     </div>
@@ -118,6 +120,50 @@
             });
             document.getElementById('chartContainer').style.display = 'block';
         }
+
+        document.getElementById('viewPredictionButton').addEventListener('click', function(event) {
+            event.preventDefault();
+            fetch("{% url 'get_prediction' %}", {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('myChart').getContext('2d');
+                    if (myChart) {
+                        myChart.destroy();
+                    }
+                    myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: [{
+                                label: '예측 데이터',
+                                data: data.predictions,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    type: 'time',
+                                    time: {
+                                        unit: 'day'
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                    document.getElementById('chartContainer').style.display = 'block';
+                })
+                .catch(error => console.error('Error:', error));
+        });
     </script>
 </body>
-</html> 
+</html>

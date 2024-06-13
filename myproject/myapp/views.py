@@ -7,6 +7,7 @@ from django.http import JsonResponse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from financial_info_for_front import MarketDataFetcher, ExchangeRateDataFetcher, GoldPriceFetcher, StockNameConverter, StockDataFetcher
+from prediction_model import get_prediction_data
 
 def market_data_view(request):
     market_fetcher = MarketDataFetcher()
@@ -35,4 +36,11 @@ def show_chart(request):
                 'labels': labels,
                 'data': data,
             })
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+def get_prediction_view(request):
+    if request.method == "GET" or request.method == "POST":
+        data = get_prediction_data()
+        return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
