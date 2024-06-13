@@ -57,7 +57,7 @@ look_back = 30  # Look-back period를 늘려 더 많은 과거 데이터를 반�
 X_data = create_dataset(scaled_data, look_back)
 
 # 예측 데이터를 받아오는 함수
-def get_prediction_data():
+def get_prediction_data(stock_code):
     # 미래 예측
     n_future = 365  # 1년 뒤까지 예측
     forecasted_data = []

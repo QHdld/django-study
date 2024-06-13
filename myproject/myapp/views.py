@@ -1,10 +1,7 @@
-import os
-import sys
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import JsonResponse
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import json
 
 from financial_info_for_front import MarketDataFetcher, ExchangeRateDataFetcher, GoldPriceFetcher, StockNameConverter, StockDataFetcher
 from prediction_model import get_prediction_data
@@ -25,7 +22,9 @@ def market_data_view(request):
 @csrf_exempt
 def show_chart(request):
     if request.method == "POST":
-        stock_name = request.POST.get('stock_name')
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        stock_name = body.get('stock_name')
         converter = StockNameConverter()
         stock_code = converter.convert_name_to_code(stock_name)
         
@@ -40,7 +39,14 @@ def show_chart(request):
 
 @csrf_exempt
 def get_prediction_view(request):
-    if request.method == "GET" or request.method == "POST":
-        data = get_prediction_data()
-        return JsonResponse(data)
+    if request.method == "POST":
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        stock_name = body.get('stock_name')
+        converter = StockNameConverter()
+        stock_code = converter.convert_name_to_code(stock_name)
+
+        if stock_code:
+            data = get_prediction_data(stock_code)
+            return JsonResponse(data)
     return JsonResponse({'error': 'Invalid request'}, status=400)
