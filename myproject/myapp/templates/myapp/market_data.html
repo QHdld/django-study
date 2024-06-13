@@ -2,53 +2,73 @@
 <html>
 <head>
     {% load static %}
-    <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
-    <link href="{% static 'myproject/css/main.css' %}" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <title>Document</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Stock and Exchange Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="header">
-        <span class="title">주식</span>
-        <span class="title">환율</span>
-        <span class="title">금</span>
-    </div>
-    <div class="container">
-        <div class="section stock">
-            <span class="item">KOSPI {{ kospi_open_price }} {{ kospi_change_rate }}</span>
-            <span class="item">KOSDAQ {{ kosdaq_open_price }} {{ kosdaq_change_rate }}</span>
-            <span class="item">KRX 300 {{ krx300_open_price }} {{ krx300_change_rate }}</span>
-            <span class="item">삼성전자 {{ samsung_electronics_open_price }} {{ samsung_electronics_change_rate }}</span>
-            <span class="item">SK 하이닉스 {{ sk_hynix_open_price }} {{ sk_hynix_change_rate }}</span>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Market Data</h1>
+            <div id="currentDateTime"></div>
         </div>
-        <div class="section exchange">
-            <span class="item">미국 {{ usd_basePrice }} {{ usd_changeStatus }} {{ usd_changePrice }}</span>
-            <span class="item">중국 {{ cny_basePrice }} {{ cny_changeStatus }} {{ cny_changePrice }}</span>
-            <span class="item">유럽 {{ eur_basePrice }} {{ eur_changeStatus }} {{ eur_changePrice }}</span>
-            <span class="item">일본 {{ jpy_basePrice }} {{ jpy_changeStatus }} {{ jpy_changePrice }}</span>
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">주식</div>
+                    <div class="card-body">
+                        <p>KOSPI: {{ kospi_open_price }} ({{ kospi_change_rate }})</p>
+                        <p>KOSDAQ: {{ kosdaq_open_price }} ({{ kosdaq_change_rate }})</p>
+                        <p>KRX 300: {{ krx300_open_price }} ({{ krx300_change_rate }})</p>
+                        <p>삼성전자: {{ samsung_electronics_open_price }} ({{ samsung_electronics_change_rate }})</p>
+                        <p>SK 하이닉스: {{ sk_hynix_open_price }} ({{ sk_hynix_change_rate }})</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">환율</div>
+                    <div class="card-body">
+                        <p>미국: {{ usd_basePrice }} <span class="changeStatus" data-status="{{ usd_changeStatus }}">{{ usd_changeStatus }} {{ usd_changePrice }}</span></p>
+                        <p>중국: {{ cny_basePrice }} <span class="changeStatus" data-status="{{ cny_changeStatus }}">{{ cny_changeStatus }} {{ cny_changePrice }}</span></p>
+                        <p>유럽: {{ eur_basePrice }} <span class="changeStatus" data-status="{{ eur_changeStatus }}">{{ eur_changeStatus }} {{ eur_changePrice }}</span></p>
+                        <p>일본: {{ jpy_basePrice }} <span class="changeStatus" data-status="{{ jpy_changeStatus }}">{{ jpy_changeStatus }} {{ jpy_changePrice }}</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">금</div>
+                    <div class="card-body">
+                        <p>시가: {{ gold_open }}</p>
+                        <p>종가: {{ gold_close }}</p>
+                        <p>최고: {{ gold_high }}</p>
+                        <p>최저: {{ gold_low }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="section gold">
-            <span class="item">시가 {{ gold_open }}</span>
-            <span class="item">종가 {{ gold_close }}</span>
-            <span class="item">최고 {{ gold_high }}</span>
-            <span class="item">최저 {{ gold_low }}</span>
+        <div class="row mb-4">
+            <div class="col">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="stockInput" placeholder="Enter stock name">
+                    <button class="btn btn-primary" type="button" id="viewChartBtn">그래프 보기</button>
+                    <button class="btn btn-secondary" type="button" id="viewPredictionBtn">예측 데이터 보기</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div id="chartContainer" style="display: none;">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="left-container">
-        <div class="input-container">
-            <form id="stockForm" method="POST" action="{% url 'show_chart' %}">
-                {% csrf_token %}
-                <input type="text" name="stock_name" placeholder="조회 할 시장(종목명)을 입력하세요" />
-                <button type="submit">그래프 보기</button>
-                <button id="viewPredictionButton" type="button">예측 데이터 보기</button>
-            </form>
-        </div>
-    </div>
-    <div id="chartContainer">
-        <canvas id="myChart" width="300" height="100"></canvas>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let myChart = null;
 
@@ -69,29 +89,55 @@
 
         const csrfToken = getCookie('csrftoken');
 
-        document.getElementById('stockForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
+        document.getElementById('viewChartBtn').addEventListener('click', function() {
+            const stockName = document.getElementById('stockInput').value;
+            fetchChart(stockName, '{% url 'show_chart' %}');
+        });
 
-            fetch("{% url 'show_chart' %}", {
+        document.getElementById('viewPredictionBtn').addEventListener('click', function() {
+            const stockName = document.getElementById('stockInput').value;
+            fetchPrediction(stockName, '{% url 'get_prediction' %}');
+        });
+
+        function fetchChart(stockName, url) {
+            fetch(url, {
                 method: 'POST',
-                body: formData,
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
-                }
+                },
+                body: JSON.stringify({ stock_name: stockName })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.labels && data.data) {
-                    updateChart(data.labels, data.data);
+                    updateChart(data.labels, data.data, 'Stock Price');
                 } else {
-                    alert('데이터를 가져오지 못했습니다.');
+                    alert('Failed to retrieve data');
                 }
-            })
-            .catch(error => console.error('Error:', error));
-        });
+            });
+        }
 
-        function updateChart(labels, data) {
+        function fetchPrediction(stockName, url) {
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ stock_name: stockName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.dates && data.predictions) {
+                    updatePredictionChart(data.dates, data.predictions);
+                } else {
+                    alert('Failed to retrieve prediction data');
+                }
+            });
+        }
+
+        function updateChart(labels, data, label = 'Stock Price') {
             const ctx = document.getElementById('myChart').getContext('2d');
             if (myChart) {
                 myChart.destroy();
@@ -101,7 +147,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Stock Price',
+                        label: label,
                         data: data,
                         borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
@@ -121,49 +167,69 @@
             document.getElementById('chartContainer').style.display = 'block';
         }
 
-        document.getElementById('viewPredictionButton').addEventListener('click', function(event) {
-            event.preventDefault();
-            fetch("{% url 'get_prediction' %}", {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': csrfToken
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    const ctx = document.getElementById('myChart').getContext('2d');
-                    if (myChart) {
-                        myChart.destroy();
-                    }
-                    myChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: data.dates,
-                            datasets: [{
-                                label: '예측 데이터',
-                                data: data.predictions,
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderWidth: 1
-                            }]
+        function updatePredictionChart(dates, predictions) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const combinedLabels = myChart.data.labels.concat(dates);
+            const combinedData = myChart.data.datasets[0].data.concat(predictions);
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: combinedLabels,
+                    datasets: [
+                        {
+                            label: 'Stock Price',
+                            data: myChart.data.datasets[0].data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
                         },
-                        options: {
-                            scales: {
-                                x: {
-                                    type: 'time',
-                                    time: {
-                                        unit: 'day'
-                                    }
-                                },
-                                y: {
-                                    beginAtZero: true
-                                }
-                            }
+                        {
+                            label: 'Prediction Data',
+                            data: combinedData,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
                         }
-                    });
-                    document.getElementById('chartContainer').style.display = 'block';
-                })
-                .catch(error => console.error('Error:', error));
-        });
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            document.getElementById('chartContainer').style.display = 'block';
+        }
+
+        function setCurrentDateTime() {
+            const now = new Date();
+            const formattedDate = now.toLocaleString();
+            document.getElementById('currentDateTime').textContent = formattedDate;
+        }
+
+        window.onload = function() {
+            setCurrentDateTime();
+            setChangeStatusColors();
+        };
+
+        function setChangeStatusColors() {
+            const changeStatusElements = document.querySelectorAll('.changeStatus');
+            changeStatusElements.forEach(element => {
+                const status = element.getAttribute('data-status');
+                if (status === '+') {
+                    element.style.color = 'blue';
+                } else if (status === '-') {
+                    element.style.color = 'red';
+                }
+            });
+        }
     </script>
 </body>
 </html>
