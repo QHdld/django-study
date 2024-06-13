@@ -20,11 +20,11 @@
                 <div class="card">
                     <div class="card-header">주식</div>
                     <div class="card-body">
-                        <p>KOSPI: {{ kospi_open_price }} ({{ kospi_change_rate }})</p>
-                        <p>KOSDAQ: {{ kosdaq_open_price }} ({{ kosdaq_change_rate }})</p>
-                        <p>KRX 300: {{ krx300_open_price }} ({{ krx300_change_rate }})</p>
-                        <p>삼성전자: {{ samsung_electronics_open_price }} ({{ samsung_electronics_change_rate }})</p>
-                        <p>SK 하이닉스: {{ sk_hynix_open_price }} ({{ sk_hynix_change_rate }})</p>
+                        <p>KOSPI: {{ kospi_open_price }} <span class="changeRate" data-rate="{{ kospi_change_rate }}">({{ kospi_change_rate }})</span></p>
+                        <p>KOSDAQ: {{ kosdaq_open_price }} <span class="changeRate" data-rate="{{ kosdaq_change_rate }}">({{ kosdaq_change_rate }})</span></p>
+                        <p>KRX 300: {{ krx300_open_price }} <span class="changeRate" data-rate="{{ krx300_change_rate }}">({{ krx300_change_rate }})</span></p>
+                        <p>삼성전자: {{ samsung_electronics_open_price }} <span class="changeRate" data-rate="{{ samsung_electronics_change_rate }}">({{ samsung_electronics_change_rate }})</span></p>
+                        <p>SK 하이닉스: {{ sk_hynix_open_price }} <span class="changeRate" data-rate="{{ sk_hynix_change_rate }}">({{ sk_hynix_change_rate }})</span></p>
                     </div>
                 </div>
             </div>
@@ -172,7 +172,7 @@
             if (myChart) {
                 myChart.destroy();
             }
-
+            // Combine existing chart data with prediction data
             const combinedLabels = myChart.data.labels.concat(dates);
             const combinedData = myChart.data.datasets[0].data.concat(predictions);
             myChart = new Chart(ctx, {
@@ -208,17 +208,21 @@
             document.getElementById('chartContainer').style.display = 'block';
         }
 
+        // 현재 날짜와 시간을 설정하는 함수
         function setCurrentDateTime() {
             const now = new Date();
             const formattedDate = now.toLocaleString();
             document.getElementById('currentDateTime').textContent = formattedDate;
         }
 
+        // 페이지 로드 시 현재 날짜와 시간을 표시
         window.onload = function() {
             setCurrentDateTime();
             setChangeStatusColors();
+            setChangeRateColors();
         };
 
+        // changeStatus에 따라 색상 설정
         function setChangeStatusColors() {
             const changeStatusElements = document.querySelectorAll('.changeStatus');
             changeStatusElements.forEach(element => {
@@ -227,6 +231,19 @@
                     element.style.color = 'blue';
                 } else if (status === '-') {
                     element.style.color = 'red';
+                }
+            });
+        }
+
+        // changeRate에 따라 색상 설정
+        function setChangeRateColors() {
+            const changeRateElements = document.querySelectorAll('.changeRate');
+            changeRateElements.forEach(element => {
+                const rate = element.getAttribute('data-rate');
+                if (rate.includes('-')) {
+                    element.style.color = 'red';
+                } else {
+                    element.style.color = 'blue';
                 }
             });
         }
