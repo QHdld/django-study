@@ -14,6 +14,21 @@ before_five_year = (now - relativedelta(years=5)).strftime("%Y-%m-%d")
 class MarketDataFetcher:
     def get_market_prices_for_ui(self):
         # 코스피 시가, 등락률
+        yesterday_kospi_price = stock.get_index_price_change(yesterday, today, "KOSPI").head(1)
+        yesterday_kospi_open_price = yesterday_kospi_price['시가'].values[0]
+        yesterday_kospi_change_rate = yesterday_kospi_price['등락률'].values[0]
+
+        # 코스닥 시가, 등락률
+        yesterday_kosdaq_price = stock.get_index_price_change(yesterday, today, "KOSDAQ").head(1)
+        yesterday_kosdaq_open_price = yesterday_kosdaq_price['시가'].values[0]
+        yesterday_kosdaq_change_rate = yesterday_kosdaq_price['등락률'].values[0]
+    
+        # KRX 300 시가, 등락률
+        yesterday_krx300_price = stock.get_index_price_change(yesterday, today, "KRX").head(1)
+        yesterday_krx300_open_price = yesterday_krx300_price['시가'].values[0]
+        yesterday_krx300_change_rate = yesterday_krx300_price['등락률'].values[0]
+
+        # 코스피 시가, 등락률
         kospi_price = stock.get_index_price_change(before_five_year, today, "KOSPI").head(1)
         kospi_open_price = kospi_price['시가'].values[0]
         kospi_change_rate = kospi_price['등락률'].values[0]
@@ -39,6 +54,12 @@ class MarketDataFetcher:
         sk_hynix_change_rate = sk_hynix['등락률'].values[0]
 
         return {
+            "yesterday_kospi_open_price": yesterday_kospi_open_price,
+            "yesterday_kospi_change_rate": yesterday_kospi_change_rate,
+            "yesterday_kosdaq_open_price": yesterday_kosdaq_open_price,
+            "yesterday_kosdaq_change_rate": yesterday_kosdaq_change_rate,
+            "yesterday_krx300_open_price": yesterday_krx300_open_price,
+            "yesterday_krx300_change_rate": yesterday_krx300_change_rate,
             "kospi_open_price": kospi_open_price,
             "kospi_change_rate": kospi_change_rate,
             "kosdaq_open_price": kosdaq_open_price,

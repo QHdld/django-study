@@ -14,6 +14,18 @@
         #currentDateTime {
             font-size: 16px;
         }
+        #loadingMessage {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -28,9 +40,9 @@
                 <div class="card">
                     <div class="card-header">주식</div>
                     <div class="card-body">
-                        <p>KOSPI: {{ kospi_open_price }} <span class="changeRate" data-rate="{{ kospi_change_rate }}">{{ kospi_change_rate }}</span></p>
-                        <p>KOSDAQ: {{ kosdaq_open_price }} <span class="changeRate" data-rate="{{ kosdaq_change_rate }}">{{ kosdaq_change_rate }}</span></p>
-                        <p>KRX 300: {{ krx300_open_price }} <span class="changeRate" data-rate="{{ krx300_change_rate }}">{{ krx300_change_rate }}</span></p>
+                        <p>KOSPI: {{ yesterday_kospi_open_price }} <span class="changeRate" data-rate="{{ yesterday_kospi_change_rate }}">{{ kospi_change_rate }}</span></p>
+                        <p>KOSDAQ: {{ yesterday_kosdaq_open_price }} <span class="changeRate" data-rate="{{ yesterday_kosdaq_change_rate }}">{{ kosdaq_change_rate }}</span></p>
+                        <p>KRX 300: {{ yesterday_krx300_open_price }} <span class="changeRate" data-rate="{{ yesterday_krx300_change_rate }}">{{ krx300_change_rate }}</span></p>
                         <p>삼성전자: {{ samsung_electronics_open_price }} <span class="changeRate" data-rate="{{ samsung_electronics_change_rate }}">{{ samsung_electronics_change_rate }}</span></p>
                         <p>SK 하이닉스: {{ sk_hynix_open_price }} <span class="changeRate" data-rate="{{ sk_hynix_change_rate }}">{{ sk_hynix_change_rate }}</span></p>
                     </div>
@@ -75,6 +87,7 @@
                 </div>
             </div>
         </div>
+        <div id="loadingMessage">잠시만 기다려주세요...</div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -107,7 +120,16 @@
             fetchPrediction(stockName, '{% url 'get_prediction' %}');
         });
 
+        function showLoadingMessage() {
+            document.getElementById('loadingMessage').style.display = 'block';
+        }
+
+        function hideLoadingMessage() {
+            document.getElementById('loadingMessage').style.display = 'none';
+        }
+
         function fetchChart(stockName, url) {
+            showLoadingMessage();
             fetch(url, {
                 method: 'POST',
                 headers: {
@@ -118,15 +140,21 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoadingMessage();
                 if (data.labels && data.data) {
                     updateChart(data.labels, data.data, 'Stock Price');
                 } else {
                     alert('Failed to retrieve data');
                 }
+            })
+            .catch(error => {
+                hideLoadingMessage();
+                console.error('Error:', error);
             });
         }
 
         function fetchPrediction(stockName, url) {
+            showLoadingMessage();
             fetch(url, {
                 method: 'POST',
                 headers: {
@@ -137,11 +165,16 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoadingMessage();
                 if (data.dates && data.predictions) {
                     updatePredictionChart(data.dates, data.predictions);
                 } else {
                     alert('Failed to retrieve prediction data');
                 }
+            })
+            .catch(error => {
+                hideLoadingMessage();
+                console.error('Error:', error);
             });
         }
 
@@ -246,7 +279,7 @@
                 const rate = element.getAttribute('data-rate');
                 if (rate.includes('-')) {
                     element.style.color = 'red';
-                    element.textContent = `-${rate}`;
+                    element.textContent = `${rate}`;
                 } else {
                     element.style.color = 'blue';
                     element.textContent = `+${rate}`;
