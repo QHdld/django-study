@@ -5,6 +5,7 @@ import yfinance as yf
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import pandas as pd
+import difflib
 
 now = datetime.now()
 today = now.strftime("%Y-%m-%d")
@@ -131,10 +132,21 @@ class GoldPriceFetcher:
 class StockNameConverter:
     def convert_name_to_code(self, stock_name):
         stock_list = stock.get_market_ticker_list(market="ALL")
+        stock_name_to_code = {}
+
         for stock_code in stock_list:
             stock_info = stock.get_market_ticker_name(stock_code)
-            if stock_info == stock_name:
-                return stock_code
+            stock_name_to_code[stock_info] = stock_code
+
+        # 정확한 이름 매칭 시
+        if stock_name in stock_name_to_code:
+            return stock_name_to_code[stock_name]
+
+        # 유사도 계산
+        closest_match = difflib.get_close_matches(stock_name, stock_name_to_code.keys(), n=1, cutoff=0.1)
+        if closest_match:
+            return stock_name_to_code[closest_match[0]]
+        
         return None
 
 class StockDataFetcher:

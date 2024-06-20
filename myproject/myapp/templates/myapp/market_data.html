@@ -15,15 +15,16 @@
             font-size: 16px;
         }
         #loadingMessage {
-            position: fixed;
+            display: none;
+            text-align: center;
+            font-size: 24px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            display: none;
             z-index: 1000;
         }
     </style>
@@ -40,9 +41,9 @@
                 <div class="card">
                     <div class="card-header">주식</div>
                     <div class="card-body">
-                        <p>KOSPI: {{ yesterday_kospi_open_price }} <span class="changeRate" data-rate="{{ yesterday_kospi_change_rate }}">{{ kospi_change_rate }}</span></p>
-                        <p>KOSDAQ: {{ yesterday_kosdaq_open_price }} <span class="changeRate" data-rate="{{ yesterday_kosdaq_change_rate }}">{{ kosdaq_change_rate }}</span></p>
-                        <p>KRX 300: {{ yesterday_krx300_open_price }} <span class="changeRate" data-rate="{{ yesterday_krx300_change_rate }}">{{ krx300_change_rate }}</span></p>
+                        <p>KOSPI: {{ yesterday_kospi_open_price }} <span class="changeRate" data-rate="{{ yesterday_kospi_change_rate }}">{{ yesterday_kospi_change_rate }}</span></p>
+                        <p>KOSDAQ: {{ kosdaq_open_price }} <span class="changeRate" data-rate="{{ kosdaq_change_rate }}">{{ kosdaq_change_rate }}</span></p>
+                        <p>KRX 300: {{ krx300_open_price }} <span class="changeRate" data-rate="{{ krx300_change_rate }}">{{ krx300_change_rate }}</span></p>
                         <p>삼성전자: {{ samsung_electronics_open_price }} <span class="changeRate" data-rate="{{ samsung_electronics_change_rate }}">{{ samsung_electronics_change_rate }}</span></p>
                         <p>SK 하이닉스: {{ sk_hynix_open_price }} <span class="changeRate" data-rate="{{ sk_hynix_change_rate }}">{{ sk_hynix_change_rate }}</span></p>
                     </div>
@@ -92,6 +93,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let myChart = null;
+        let predictionAdded = false;
 
         function getCookie(name) {
             let cookieValue = null;
@@ -113,59 +115,53 @@
         document.getElementById('viewChartBtn').addEventListener('click', function() {
             const stockName = document.getElementById('stockInput').value;
             fetchChart(stockName, '{% url 'show_chart' %}');
+            predictionAdded = false;  // 새로운 종목을 볼 때마다 예측 데이터 추가 상태를 초기화
         });
 
         document.getElementById('viewPredictionBtn').addEventListener('click', function() {
-            const stockName = document.getElementById('stockInput').value;
-            fetchPrediction(stockName, '{% url 'get_prediction' %}');
+            if (!predictionAdded) {
+                const stockName = document.getElementById('stockInput').value;
+                fetchPrediction(stockName, '{% url 'get_prediction' %}');
+                predictionAdded = true;
+            } else {
+                alert('Prediction data is already added');
+            }
         });
 
-        function showLoadingMessage() {
-            document.getElementById('loadingMessage').style.display = 'block';
-        }
-
-        function hideLoadingMessage() {
-            document.getElementById('loadingMessage').style.display = 'none';
-        }
-
         function fetchChart(stockName, url) {
-            showLoadingMessage();
+            document.getElementById('loadingMessage').style.display = 'block';
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ stock_name: stockName })
+                body: new URLSearchParams({ stock_name: stockName })
             })
             .then(response => response.json())
             .then(data => {
-                hideLoadingMessage();
+                document.getElementById('loadingMessage').style.display = 'none';
                 if (data.labels && data.data) {
                     updateChart(data.labels, data.data, 'Stock Price');
                 } else {
                     alert('Failed to retrieve data');
                 }
-            })
-            .catch(error => {
-                hideLoadingMessage();
-                console.error('Error:', error);
             });
         }
 
         function fetchPrediction(stockName, url) {
-            showLoadingMessage();
+            document.getElementById('loadingMessage').style.display = 'block';
             fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ stock_name: stockName })
+                body: new URLSearchParams({ stock_name: stockName })
             })
             .then(response => response.json())
             .then(data => {
-                hideLoadingMessage();
+                document.getElementById('loadingMessage').style.display = 'none';
                 if (data.dates && data.predictions) {
                     updatePredictionChart(data.dates, data.predictions);
                 } else {
@@ -173,8 +169,8 @@
                 }
             })
             .catch(error => {
-                hideLoadingMessage();
-                console.error('Error:', error);
+                document.getElementById('loadingMessage').style.display = 'none';
+                console.error('Error fetching prediction data:', error);
             });
         }
 
@@ -191,7 +187,8 @@
                         label: label,
                         data: data,
                         borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        fill: false
                     }]
                 },
                 options: {
@@ -209,44 +206,34 @@
         }
 
         function updatePredictionChart(dates, predictions) {
-            const ctx = document.getElementById('myChart').getContext('2d');
             if (myChart) {
-                myChart.destroy();
-            }
+                const existingLabels = myChart.data.labels;
+                const existingData = myChart.data.datasets[0].data;
 
-            const combinedLabels = myChart.data.labels.concat(dates);
-            const combinedData = myChart.data.datasets[0].data.concat(predictions);
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: combinedLabels,
-                    datasets: [
-                        {
-                            label: 'Stock Price',
-                            data: myChart.data.datasets[0].data,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Prediction Data',
-                            data: combinedData,
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    scales: {
-                        x: {
-                            beginAtZero: true
-                        },
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-            document.getElementById('chartContainer').style.display = 'block';
+                // 예측 데이터의 첫 날짜가 기존 데이터의 마지막 날짜보다 이후인 경우
+                const lastExistingDate = new Date(existingLabels[existingLabels.length - 1]);
+                const firstPredictionDate = new Date(dates[0]);
+
+                const combinedLabels = existingLabels.concat(dates.filter(date => new Date(date) > lastExistingDate));
+                const combinedData = existingData.concat(predictions.filter((_, index) => new Date(dates[index]) > lastExistingDate));
+
+                // 기존 데이터셋 업데이트
+                myChart.data.labels = combinedLabels;
+                myChart.data.datasets[0].data = existingData.concat(Array(dates.length).fill(null));
+
+                // 예측 데이터셋 추가
+                myChart.data.datasets.push({
+                    label: 'Prediction Data',
+                    data: Array(existingLabels.length).fill(null).concat(predictions),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                    fill: false
+                });
+
+                myChart.update();
+            } else {
+                alert('Please view the chart first');
+            }
         }
 
         function setCurrentDateTime() {
