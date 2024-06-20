@@ -13,6 +13,8 @@
         }
         #currentDateTime {
             font-size: 16px;
+            display: flex;
+            align-items: center;
         }
         #loadingMessage {
             display: none;
@@ -27,6 +29,9 @@
             transform: translate(-50%, -50%);
             z-index: 1000;
         }
+        #refreshBtn {
+            margin-left: 10px;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -34,18 +39,21 @@
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>Market Data</h1>
-            <div id="currentDateTime">업데이트 일시 <span id="dateTime"></span></div>
+            <div id="currentDateTime">
+                업데이트 일시 <span id="dateTime"></span>
+                <button class="btn btn-info ms-2" type="button" id="refreshBtn">업데이트</button>
+            </div>
         </div>
         <div class="row mb-4">
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">주식</div>
                     <div class="card-body">
-                        <p>KOSPI: {{ yesterday_kospi_open_price }} <span class="changeRate" data-rate="{{ yesterday_kospi_change_rate }}">{{ yesterday_kospi_change_rate }}</span></p>
-                        <p>KOSDAQ: {{ kosdaq_open_price }} <span class="changeRate" data-rate="{{ kosdaq_change_rate }}">{{ kosdaq_change_rate }}</span></p>
-                        <p>KRX 300: {{ krx300_open_price }} <span class="changeRate" data-rate="{{ krx300_change_rate }}">{{ krx300_change_rate }}</span></p>
-                        <p>삼성전자: {{ samsung_electronics_open_price }} <span class="changeRate" data-rate="{{ samsung_electronics_change_rate }}">{{ samsung_electronics_change_rate }}</span></p>
-                        <p>SK 하이닉스: {{ sk_hynix_open_price }} <span class="changeRate" data-rate="{{ sk_hynix_change_rate }}">{{ sk_hynix_change_rate }}</span></p>
+                        <p>KOSPI: {{ yesterday_kospi_open_price|floatformat:2 }} <span class="changeRate" data-rate="{{ yesterday_kospi_change_rate|floatformat:2 }}">{{ yesterday_kospi_change_rate|floatformat:2 }}</span></p>
+                        <p>KOSDAQ: {{ kosdaq_open_price|floatformat:2 }} <span class="changeRate" data-rate="{{ kosdaq_change_rate|floatformat:2 }}">{{ kosdaq_change_rate|floatformat:2 }}</span></p>
+                        <p>KRX 300: {{ krx300_open_price|floatformat:2 }} <span class="changeRate" data-rate="{{ krx300_change_rate|floatformat:2 }}">{{ krx300_change_rate|floatformat:2 }}</span></p>
+                        <p>삼성전자: {{ samsung_electronics_open_price|floatformat:2 }} <span class="changeRate" data-rate="{{ samsung_electronics_change_rate|floatformat:2 }}">{{ samsung_electronics_change_rate|floatformat:2 }}</span></p>
+                        <p>SK 하이닉스: {{ sk_hynix_open_price|floatformat:2 }} <span class="changeRate" data-rate="{{ sk_hynix_change_rate|floatformat:2 }}">{{ sk_hynix_change_rate|floatformat:2 }}</span></p>
                     </div>
                 </div>
             </div>
@@ -53,10 +61,10 @@
                 <div class="card">
                     <div class="card-header">환율</div>
                     <div class="card-body">
-                        <p>미국: {{ usd_basePrice }} <span class="changeStatus" data-status="{{ usd_changeStatus }}">{{ usd_changeStatus }} {{ usd_changePrice }}</span></p>
-                        <p>중국: {{ cny_basePrice }} <span class="changeStatus" data-status="{{ cny_changeStatus }}">{{ cny_changeStatus }} {{ cny_changePrice }}</span></p>
-                        <p>유럽: {{ eur_basePrice }} <span class="changeStatus" data-status="{{ eur_changeStatus }}">{{ eur_changeStatus }} {{ eur_changePrice }}</span></p>
-                        <p>일본: {{ jpy_basePrice }} <span class="changeStatus" data-status="{{ jpy_changeStatus }}">{{ jpy_changeStatus }} {{ jpy_changePrice }}</span></p>
+                        <p>미국: {{ usd_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ usd_changeStatus }}">{{ usd_changeStatus }} {{ usd_changePrice|floatformat:2 }}</span></p>
+                        <p>중국: {{ cny_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ cny_changeStatus }}">{{ cny_changeStatus }} {{ cny_changePrice|floatformat:2 }}</span></p>
+                        <p>유럽: {{ eur_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ eur_changeStatus }}">{{ eur_changeStatus }} {{ eur_changePrice|floatformat:2 }}</span></p>
+                        <p>일본: {{ jpy_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ jpy_changeStatus }}">{{ jpy_changeStatus }} {{ jpy_changePrice|floatformat:2 }}</span></p>
                     </div>
                 </div>
             </div>
@@ -64,10 +72,10 @@
                 <div class="card">
                     <div class="card-header">금</div>
                     <div class="card-body">
-                        <p>시가: {{ gold_open }}</p>
-                        <p>종가: {{ gold_close }}</p>
-                        <p>최고: {{ gold_high }}</p>
-                        <p>최저: {{ gold_low }}</p>
+                        <p>시가: {{ gold_open|floatformat:2 }}</p>
+                        <p>종가: {{ gold_close|floatformat:2 }}</p>
+                        <p>최고: {{ gold_high|floatformat:2 }}</p>
+                        <p>최저: {{ gold_low|floatformat:2 }}</p>
                     </div>
                 </div>
             </div>
@@ -94,6 +102,7 @@
     <script>
         let myChart = null;
         let predictionAdded = false;
+        let lastRefreshTime = null;
 
         function getCookie(name) {
             let cookieValue = null;
@@ -125,6 +134,16 @@
                 predictionAdded = true;
             } else {
                 alert('Prediction data is already added');
+            }
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            const now = new Date();
+            if (lastRefreshTime && (now - lastRefreshTime) < 60000) {
+                alert('조금 있다가 다시 시도해주세요.');
+            } else {
+                location.reload();
+                lastRefreshTime = new Date();
             }
         });
 
@@ -209,28 +228,51 @@
             if (myChart) {
                 const existingLabels = myChart.data.labels;
                 const existingData = myChart.data.datasets[0].data;
-
-                // 예측 데이터의 첫 날짜가 기존 데이터의 마지막 날짜보다 이후인 경우
+        
                 const lastExistingDate = new Date(existingLabels[existingLabels.length - 1]);
                 const firstPredictionDate = new Date(dates[0]);
 
-                const combinedLabels = existingLabels.concat(dates.filter(date => new Date(date) > lastExistingDate));
-                const combinedData = existingData.concat(predictions.filter((_, index) => new Date(dates[index]) > lastExistingDate));
-
-                // 기존 데이터셋 업데이트
-                myChart.data.labels = combinedLabels;
-                myChart.data.datasets[0].data = existingData.concat(Array(dates.length).fill(null));
-
-                // 예측 데이터셋 추가
-                myChart.data.datasets.push({
-                    label: 'Prediction Data',
-                    data: Array(existingLabels.length).fill(null).concat(predictions),
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    borderWidth: 1,
-                    fill: false
-                });
-
-                myChart.update();
+                if (firstPredictionDate >= lastExistingDate) {
+                    const combinedLabels = existingLabels.concat(dates.filter(date => new Date(date) > lastExistingDate));
+                    const combinedData = existingData.concat(Array(dates.length).fill(null).map((_, i) => {
+                        const date = new Date(dates[i]);
+                        if (date >= lastExistingDate) {
+                            return predictions[i];
+                        }
+                        return null;
+                    }));
+        
+                    myChart.data.labels = combinedLabels;
+                    myChart.data.datasets[0].data = combinedData.slice(0, existingLabels.length);
+        
+                    myChart.data.datasets.push({
+                        label: 'Prediction Data',
+                        data: combinedData.map((data, index) => index >= existingLabels.length ? data : null),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    });
+        
+                    myChart.update();
+                } else {
+                    const overlapIndex = dates.findIndex(date => new Date(date) >= lastExistingDate);
+        
+                    const combinedLabels = existingLabels.concat(dates.slice(overlapIndex));
+                    const combinedData = existingData.concat(predictions.slice(overlapIndex));
+        
+                    myChart.data.labels = combinedLabels;
+                    myChart.data.datasets[0].data = existingData.concat(Array(overlapIndex).fill(null));
+        
+                    myChart.data.datasets.push({
+                        label: 'Prediction Data',
+                        data: Array(existingLabels.length - 1).fill(null).concat(predictions),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    });
+        
+                    myChart.update();
+                }
             } else {
                 alert('Please view the chart first');
             }
