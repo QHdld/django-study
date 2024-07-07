@@ -61,10 +61,10 @@
                 <div class="card">
                     <div class="card-header">환율</div>
                     <div class="card-body">
-                        <p>미국: {{ usd_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ usd_changeStatus }}">{{ usd_changeStatus }} {{ usd_changePrice|floatformat:2 }}</span></p>
-                        <p>중국: {{ cny_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ cny_changeStatus }}">{{ cny_changeStatus }} {{ cny_changePrice|floatformat:2 }}</span></p>
-                        <p>유럽: {{ eur_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ eur_changeStatus }}">{{ eur_changeStatus }} {{ eur_changePrice|floatformat:2 }}</span></p>
-                        <p>일본: {{ jpy_basePrice|floatformat:2 }} <span class="changeStatus" data-status="{{ jpy_changeStatus }}">{{ jpy_changeStatus }} {{ jpy_changePrice|floatformat:2 }}</span></p>
+                        <p>미국: {{ usd_basePrice|floatformat:2 }} <span class="changeRate" data-rate="{{ usd_changePrice|floatformat:2 }}">{{ usd_changePrice|floatformat:2 }}</span></p>
+                        <p>중국: {{ cny_basePrice|floatformat:2 }} <span class="changeRate" data-rate="{{ cny_changePrice|floatformat:2 }}">{{ cny_changePrice|floatformat:2 }}</span></p>
+                        <p>유럽: {{ eur_basePrice|floatformat:2 }} <span class="changeRate" data-rate="{{ eur_changePrice|floatformat:2 }}">{{ eur_changePrice|floatformat:2 }}</span></p>
+                        <p>일본: {{ jpy_basePrice|floatformat:2 }} <span class="changeRate" data-rate="{{ jpy_changePrice|floatformat:2 }}">{{ jpy_changePrice|floatformat:2 }}</span></p>
                     </div>
                 </div>
             </div>
@@ -89,6 +89,19 @@
                 </div>
             </div>
         </div>
+        <div class="row mb-4">
+            <div class="col">
+                <div class="input-group">
+                    <label class="input-group-text" for="dateRangeSelect">기간 범위</label>
+                    <select class="form-select" id="dateRangeSelect">
+                        <option value="5y">5년</option>
+                        <option value="3y">3년</option>
+                        <option value="1y">1년</option>
+                        <option value="6m">6개월</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         <div class="row">
             <div class="col">
                 <div id="chartContainer" style="display: none;">
@@ -108,7 +121,7 @@
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
                 const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
+                for (let i = 0; cookies.length > i; i++) {
                     const cookie = cookies[i].trim();
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -123,14 +136,16 @@
 
         document.getElementById('viewChartBtn').addEventListener('click', function() {
             const stockName = document.getElementById('stockInput').value;
-            fetchChart(stockName, '{% url 'show_chart' %}');
+            const dateRange = document.getElementById('dateRangeSelect').value;
+            fetchChart(stockName, dateRange, '{% url 'show_chart' %}');
             predictionAdded = false;  // 새로운 종목을 볼 때마다 예측 데이터 추가 상태를 초기화
         });
 
         document.getElementById('viewPredictionBtn').addEventListener('click', function() {
             if (!predictionAdded) {
                 const stockName = document.getElementById('stockInput').value;
-                fetchPrediction(stockName, '{% url 'get_prediction' %}');
+                const dateRange = document.getElementById('dateRangeSelect').value;
+                fetchPrediction(stockName, dateRange, '{% url 'get_prediction' %}');
                 predictionAdded = true;
             } else {
                 alert('Prediction data is already added');
@@ -147,7 +162,7 @@
             }
         });
 
-        function fetchChart(stockName, url) {
+        function fetchChart(stockName, dateRange, url) {
             document.getElementById('loadingMessage').style.display = 'block';
             fetch(url, {
                 method: 'POST',
@@ -155,20 +170,21 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrfToken
                 },
-                body: new URLSearchParams({ stock_name: stockName })
+                body: new URLSearchParams({ stock_names: [stockName], date_range: dateRange })  // 'stock_names' 배열로 보냄
             })
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loadingMessage').style.display = 'none';
-                if (data.labels && data.data) {
-                    updateChart(data.labels, data.data, 'Stock Price');
+                if (data.all_data && data.all_data.length > 0) {
+                    const stockData = data.all_data[0];
+                    updateChart(stockData.labels, stockData.data, 'Stock Price');
                 } else {
                     alert('Failed to retrieve data');
                 }
             });
         }
 
-        function fetchPrediction(stockName, url) {
+        function fetchPrediction(stockName, dateRange, url) {
             document.getElementById('loadingMessage').style.display = 'block';
             fetch(url, {
                 method: 'POST',
@@ -176,7 +192,7 @@
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-CSRFToken': csrfToken
                 },
-                body: new URLSearchParams({ stock_name: stockName })
+                body: new URLSearchParams({ stock_name: stockName, date_range: dateRange })
             })
             .then(response => response.json())
             .then(data => {
@@ -231,7 +247,7 @@
         
                 const lastExistingDate = new Date(existingLabels[existingLabels.length - 1]);
                 const firstPredictionDate = new Date(dates[0]);
-
+        
                 if (firstPredictionDate >= lastExistingDate) {
                     const combinedLabels = existingLabels.concat(dates.filter(date => new Date(date) > lastExistingDate));
                     const combinedData = existingData.concat(Array(dates.length).fill(null).map((_, i) => {
