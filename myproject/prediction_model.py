@@ -1,85 +1,61 @@
-# prediction_model.py
 import pandas as pd
-import numpy as np
-from tensorflow.keras.models import load_model
-import joblib
+import yfinance as yf
+import warnings
+from prophet import Prophet
+import logging
 from datetime import datetime, timedelta
 
-# 모델과 스케일러 로드
-model = load_model('saved_model.h5')
-scaler = joblib.load('scaler.gz')
+warnings.filterwarnings('ignore')
+logger = logging.getLogger(__name__)
 
-# 데이터 로드
-krx_data = pd.read_csv('krx_data.csv')
-kospi_data = pd.read_csv('kospi_data.csv')
-kosdaq_data = pd.read_csv('kosdaq_data.csv')
-gold_data = pd.read_csv('gold_data.csv', index_col='Date', parse_dates=True)
-exchange_data = pd.read_csv('exchange_data.csv', index_col='date', parse_dates=True)
+def load_stock_data(stock_code, start_date, end_date):
+    try:
+        stock_data = yf.download(stock_code, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'))
+        logger.debug(f"Stock data loaded for {stock_code}: {stock_data.head()}")
+    except Exception as e:
+        logger.error(f"Error loading stock data for {stock_code}: {e}")
+        raise ValueError(f"No data found for stock code: {stock_code}")
+    
+    if stock_data.empty:
+        logger.error(f"No data found for stock code: {stock_code} in date range {start_date} to {end_date}")
+        raise ValueError(f"No data found for stock code: {stock_code} in date range {start_date} to {end_date}")
 
-# 현재 날짜 기준으로 각 지수의 종가를 가져옴
-krx_close = krx_data.groupby('지수명')['종가'].last()
-kospi_close = kospi_data.groupby('지수명')['종가'].last()
-kosdaq_close = kosdaq_data.groupby('지수명')['종가'].last()
+    stock_data['y'] = stock_data['Close']
+    stock_data['ds'] = stock_data.index
+    return stock_data
 
-# 추가 데이터를 병합
-additional_data = {
-    'Gold_Close': gold_data['Close'],
-    'Exchange_Rate': exchange_data['basePrice']
-}
+def train_model(stock_data):
+    model = Prophet()
+    model.fit(stock_data)
+    return model
 
-# 각 지수명별 종가 추가
-for idx in krx_close.index:
-    additional_data[idx + '_KRX_Close'] = krx_close[idx]
-for idx in kospi_close.index:
-    additional_data[idx + '_KOSPI_Close'] = kospi_close[idx]
-for idx in kosdaq_close.index:
-    additional_data[idx + '_KOSDAQ_Close'] = kosdaq_close[idx]
+def predict_stock_price(stock_code, start_date, end_date):
+    stock_data = load_stock_data(stock_code, start_date, end_date)
+    model = train_model(stock_data)
+    
+    # 예측 시작 날짜를 현재 날짜로 설정
+    future = model.make_future_dataframe(periods=365)
+    forecast = model.predict(future)
+    logger.debug(f"Forecast data for {stock_code}: {forecast.tail()}")
 
-# 추가 데이터를 데이터 프레임으로 변환
-additional_df = pd.DataFrame(additional_data)
+    # 예측 데이터의 첫 번째 값을 실제 데이터의 마지막 값과 동일하게 조정
+    if not stock_data.empty:
+        last_actual_value = stock_data['y'].iloc[-1]
+        forecast.loc[forecast['ds'] > stock_data['ds'].iloc[-1], 'yhat'] = forecast.loc[forecast['ds'] > stock_data['ds'].iloc[-1], 'yhat'].fillna(last_actual_value)
 
-# 결측값 처리
-additional_df.fillna(method='ffill', inplace=True)
-additional_df.fillna(method='bfill', inplace=True)
+    return forecast[['ds', 'yhat']]
 
-# 데이터 스케일링
-scaled_data = scaler.transform(additional_df)
+def get_prediction_data(stock_code, start_date, end_date):
+    try:
+        logger.debug(f"Fetching prediction data for stock code: {stock_code}, start_date: {start_date}, end_date: {end_date}")
+        forecast = predict_stock_price(stock_code, start_date, end_date)
+        dates = forecast['ds'].dt.strftime('%Y-%m-%d').tolist()
+        predictions = forecast['yhat'].tolist()
 
-# LSTM 모델을 위한 데이터 형식 변환
-def create_dataset(dataset, look_back=1):
-    X = []
-    for i in range(len(dataset) - look_back - 1):
-        a = dataset[i:(i + look_back), :]
-        X.append(a)
-    return np.array(X)
-
-look_back = 30  # Look-back period를 늘려 더 많은 과거 데이터를 반영
-X_data = create_dataset(scaled_data, look_back)
-
-# 예측 데이터를 받아오는 함수
-def get_prediction_data(stock_code):
-    # 미래 예측
-    n_future = 365  # 1년 뒤까지 예측
-    forecasted_data = []
-    last_sequence = scaled_data[-look_back:]
-    for _ in range(n_future):
-        input_data = last_sequence[-look_back:].reshape((1, look_back, X_data.shape[2]))
-        prediction = model.predict(input_data)
-        forecasted_data.append(prediction[0, 0])
-        prediction_expanded = np.zeros((1, X_data.shape[2]))
-        prediction_expanded[0, 0] = prediction
-        new_sequence = np.concatenate((last_sequence, prediction_expanded), axis=0)
-        last_sequence = new_sequence[1:]
-
-    # 스케일링 복원
-    forecasted_data = np.array(forecasted_data).reshape(-1, 1)
-    forecasted_data = scaler.inverse_transform(np.concatenate((forecasted_data, np.zeros((forecasted_data.shape[0], additional_df.shape[1] - 1))), axis=1))[:, 0]
-
-    # 미래 날짜 생성
-    last_date = additional_df.index[-1]
-    future_dates = [last_date + timedelta(days=i) for i in range(1, n_future + 1)]
-
-    return {
-        'dates': [date.strftime('%Y-%m-%d') for date in future_dates],
-        'predictions': forecasted_data.tolist()
-    }
+        return {
+            'dates': dates,
+            'predictions': predictions
+        }
+    except Exception as e:
+        logger.error(f"Error in get_prediction_data: {e}")
+        raise
